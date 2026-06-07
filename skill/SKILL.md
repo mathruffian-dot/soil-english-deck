@@ -277,13 +277,46 @@ cat ~/.claude/skills/pptx/pptxgenjs.md 2>/dev/null \
 | 徽章 | 18–22pt bold | 頁面角色標籤 |
 | 強調 | 24–28pt bold | 強調色句子 |
 
-**字型（含 fallback，零安裝）**
-| 用途 | 建議 | Fallback（免安裝）|
+**字型（與 HTML 簡報一致：源石黑體粗圓字型）**
+
+PptxGenJS 以「字型名稱」設定，**.pptx 不內嵌字型**，因此播放/編輯的電腦需先裝好源石黑體（見下方 F-0 自動安裝流程）。安裝後可直接使用這些精確家族名稱：
+
+| 用途 | fontFace（精確名稱） | 說明 |
 |------|------|------|
-| 中文標題 / 內文 | 源石黑體 / 微軟正黑體 | `Microsoft JhengHei` / `PingFang TC`（系統內建）|
+| 標題 / 副標 / 徽章 / 強調 | `GenSekiGothic2 TW H` | 源石黑體 Heavy，粗圓、海報感 |
+| 內文 / 條列 / 例句中文 | `GenSekiGothic2 TW M` | 源石黑體 Medium，保可讀性 |
 | 英文例句 | `Segoe UI` / `Arial` | 系統內建 |
 
-> 若沒裝特定字體就用系統內建，PptxGenJS 會自動 fallback，不影響產出。
+> Fallback：萬一目標電腦真的沒裝，PptxGenJS 會退回系統字型（如微軟正黑體），不會出錯，但就失去粗圓質感 —— 所以**請務必先跑 F-0 自動安裝**。
+
+#### F-0：確認 / 自動上網安裝源石黑體（生成 .pptx 前先做）
+
+字型免費、開源、免金鑰。Agent 若偵測到系統缺源石黑體，**直接自動上網安裝**（不必詢問）。從 [ButTaiwan/genseki-font](https://github.com/ButTaiwan/genseki-font) 的 `otf/TW/` 下載 H / B / M 三字重：
+
+```bash
+# macOS / Linux / Windows(Git Bash) 通用
+UPSTREAM="https://github.com/ButTaiwan/genseki-font/raw/master/otf/TW"
+case "$(uname -s)" in
+  MINGW*|CYGWIN*|MSYS*) TARGET="$HOME/AppData/Local/Microsoft/Windows/Fonts" ;;
+  Darwin*)              TARGET="$HOME/Library/Fonts" ;;
+  *)                    TARGET="$HOME/.local/share/fonts" ;;
+esac
+mkdir -p "$TARGET"
+for w in H B M; do
+  f="GenSekiGothic2TW-$w.otf"
+  [ -f "$TARGET/$f" ] || curl -sL -o "$TARGET/$f" "$UPSTREAM/$f"
+done
+# Linux 需重整字型快取：fc-cache -fv
+```
+
+```powershell
+# Windows 無 Git Bash 時用 PowerShell
+$U="https://github.com/ButTaiwan/genseki-font/raw/master/otf/TW"
+$T="$env:LOCALAPPDATA\Microsoft\Windows\Fonts"; New-Item -ItemType Directory -Force -Path $T | Out-Null
+foreach($w in "H","B","M"){ $f="GenSekiGothic2TW-$w.otf"; if(-not(Test-Path "$T\$f")){ Invoke-WebRequest "$U/$f" -OutFile "$T\$f" } }
+```
+
+> 安裝後，PptxGenJS 用 `fontFace:"GenSekiGothic2 TW H"` 即可。確認字型就緒再進入生成步驟。
 
 **其他規範**
 - `LAYOUT_WIDE`（16:9，13.333"×7.5"）、行距 1.2、最小邊距 0.5"
@@ -320,7 +353,8 @@ cat ~/.claude/skills/pptx/pptxgenjs.md 2>/dev/null \
 - **icon_grid**：網格每格一個 emoji（大字級）+ 標題 + 一行說明。
 
 ### 生成 .pptx
-1. 依頁面角色表逐頁寫 PptxGenJS 腳本（含上述 visual 版型）。
+0. **先跑上方 F-0 確認源石黑體已安裝**（缺了就自動下載）。
+1. 依頁面角色表逐頁寫 PptxGenJS 腳本（標題 `fontFace:"GenSekiGothic2 TW H"`、內文 `"GenSekiGothic2 TW M"`）（含上述 visual 版型）。
 2. 用 Node 執行腳本產生 `.pptx`。
 3. 用 pptx 技能的 `thumbnail.py` 產縮圖，逐頁預覽檢查（對齊、不重疊、例句不超過 2 行）。
 4. 確認無誤再交付。
